@@ -25,7 +25,9 @@ object TransformApp {
     input.append(("huhu","egg..."))
     val inputRDD = sc.parallelize(input)
 
-    inputRDD.leftOuterJoin(blackRDD)
+    inputRDD.leftOuterJoin(blackRDD).filter(line =>{
+      line._2._2.getOrElse(false) !=true
+    }).map(line => line._2._1).foreach(println)
 
     sc.stop()
   }
