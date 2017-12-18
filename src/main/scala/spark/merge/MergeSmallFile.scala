@@ -23,9 +23,9 @@ object MergeSmallFile {
     //    val fileSystem = FileSystem.get(new URI("hdfs://192.168.26.131:8020"), hadoopConf)
     val fileSystem = FileSystem.get(hadoopConf)
 
-    val partitionPath = "E:/file/minute=5/"
-    val tmpPath = "E:/tmp/minute=5/"
-    val outPath = "E:/file/minute=5/"
+    val partitionPath = "E://file/minute=5/"
+    val tmpPath = "E://tmp/minute=5/"
+    val outPath = "E://file/minute=5/"
     val partitionInfo = "minute=5"
 
     mergeOut(sc, fileSystem, partitionPath, tmpPath, outPath, partitionInfo)
@@ -35,34 +35,34 @@ object MergeSmallFile {
 
   def mergeOut(sc: SparkContext, fileSystem: FileSystem, partitionPath: String, tmpPath: String, outPath: String, partitionInfo:String): Unit ={
     val mergeBeforeNum = sc.longAccumulator("mergeBeforeNum")
-    val path = SparkHadoopUtil.get.globPath(new Path(partitionPath + "/part-*"))
+    val path = SparkHadoopUtil.get.globPath(new Path(partitionPath + "part-*"))
 
     path.foreach(paths => {
       // 统计合并之前有多少文件
       mergeBeforeNum.add(1)
     })
 
-    // 过滤之后，得到小于450字节的文件，得到合并路径
+    // 过滤之后，得到小于5M的文件，得到合并路径
     val mergePath = path.filter(paths => {
-      fileSystem.getContentSummary(paths).getLength < 450
+      fileSystem.getContentSummary(paths).getLength < 5*1024*1024
     })
 
     val partitions = new mutable.HashSet[String]()
-    val tmpMergePath = new Path("E:/file/tmp_merge/" + partitionInfo)
+    val tmpMergePath = new Path("E://file/tmp_merge/" + partitionInfo)
     if (fileSystem.exists(tmpMergePath)) {
       fileSystem.delete(tmpMergePath, true)
     }
     fileSystem.mkdirs(tmpMergePath)
-    // 将过滤之后的小文件存放至新的路径：E:/file/tmp_merge/minute=x 下
+    // 将小于5M的小文件存放至路径：E://file/tmp_merge/minute=5下
     mergePath.foreach(mergePaths => {
-      // 将需要 合并的小文件 的路径保存到可变的HashSet中去
-      // E:/file/minute=10/part-xxxx
+      // 将要合并的小文件的路径保存到可变的HashSet中去
+      // E://file/minute=5/part-xxxx
       println(mergePaths)
       partitions.add(mergePaths.toString)
       fileSystem.rename(mergePaths, tmpMergePath)
     })
 
-    val newMergeRDD = sc.textFile("E:/file/tmp_merge/" + partitionInfo)
+    val newMergeRDD = sc.textFile("E://file/tmp_merge/" + partitionInfo)
     deleteDir(tmpPath, fileSystem)
     newMergeRDD.foreach(println)
     newMergeRDD.coalesce(4).saveAsTextFile(tmpPath)

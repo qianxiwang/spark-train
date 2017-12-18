@@ -11,6 +11,7 @@ object TestHeightApp {
     val datafile = sc.textFile("F://data/Student.txt")
     val xingbie = datafile.map(x => x.split(" ")(1).contains("M")).count()
 
+
     println(xingbie)
 
     sc.stop()
